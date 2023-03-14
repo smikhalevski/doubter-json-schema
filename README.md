@@ -12,6 +12,7 @@ Define a shape:
 
 ```ts
 import * as d from 'doubter';
+import { toJSONSchema } from '@doubter/json-schema';
 
 const shape = d.object({
   foo: d.string().optional(),

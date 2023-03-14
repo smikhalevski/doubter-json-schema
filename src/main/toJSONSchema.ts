@@ -7,11 +7,11 @@ import {
   Check,
   ConstShape,
   DateShape,
+  DenyLiteralShape,
   EnumShape,
   ExcludeShape,
   InstanceShape,
   IntersectionShape,
-  JSONShape,
   LazyShape,
   MapShape,
   NeverShape,
@@ -20,11 +20,10 @@ import {
   PipeShape,
   PromiseShape,
   RecordShape,
-  ReplaceShape,
+  ReplaceLiteralShape,
   SetShape,
   Shape,
   StringShape,
-  SymbolShape,
   TransformShape,
   UnionShape,
 } from 'doubter';
@@ -103,7 +102,8 @@ function convertShape(shape: AnyShape, context: ConversionContext): JSONSchema {
     throw new Error('Expected a shape');
   }
 
-  if (shape instanceof TransformShape || shape instanceof CatchShape || shape instanceof LazyShape) {
+  if (shape instanceof TransformShape) {
+  } else if (shape instanceof CatchShape || shape instanceof LazyShape) {
     return context.get(shape.shape);
   } else if (shape instanceof PipeShape) {
     return context.get(shape.inputShape);
@@ -111,8 +111,10 @@ function convertShape(shape: AnyShape, context: ConversionContext): JSONSchema {
 
   let schema: JSONSchema;
 
-  if (shape instanceof ReplaceShape) {
-    schema = convertReplaceShape(shape, context);
+  if (shape instanceof ReplaceLiteralShape) {
+    schema = convertReplaceLiteralShape(shape, context);
+  } else if (shape instanceof DenyLiteralShape) {
+    schema = convertDenyLiteralShape(shape, context);
   } else if (shape instanceof ExcludeShape) {
     schema = convertExcludeShape(shape, context);
   } else if (shape instanceof NumberShape) {
@@ -123,8 +125,6 @@ function convertShape(shape: AnyShape, context: ConversionContext): JSONSchema {
     schema = { type: 'integer', format: 'int64' };
   } else if (shape instanceof StringShape) {
     schema = convertStringShape(shape);
-  } else if (shape instanceof JSONShape) {
-    schema = { type: 'string', format: 'json' };
   } else if (shape instanceof EnumShape) {
     schema = { enum: shape.values.slice(0) };
   } else if (shape instanceof UnionShape) {
@@ -151,14 +151,12 @@ function convertShape(shape: AnyShape, context: ConversionContext): JSONSchema {
     schema = { allOf: convertShapes(shape.shapes, context) };
   } else if (shape instanceof InstanceShape) {
     schema = { type: 'object' };
-  } else if (shape instanceof SymbolShape) {
-    throw new Error('Symbols cannot be represented in a JSON schema');
   } else {
     schema = {};
   }
 
-  if (shape.description !== '') {
-    schema.description = shape.description;
+  if (typeof shape.annotations.description === 'string') {
+    schema.description = shape.annotations.description;
   }
 
   return schema;
@@ -173,7 +171,10 @@ function convertShapes(shapes: AnyShape[], context: ConversionContext): Array<JS
   return schemas;
 }
 
-function convertReplaceShape(shape: ReplaceShape<AnyShape, unknown, unknown>, context: ConversionContext): JSONSchema {
+function convertReplaceLiteralShape(
+  shape: ReplaceLiteralShape<AnyShape, unknown, unknown>,
+  context: ConversionContext
+): JSONSchema {
   return {
     oneOf: [
       shape.inputValue === null || shape.inputValue === undefined ? { type: 'null' } : { const: shape.inputValue },
@@ -182,10 +183,18 @@ function convertReplaceShape(shape: ReplaceShape<AnyShape, unknown, unknown>, co
   };
 }
 
-function convertExcludeShape(shape: ExcludeShape<AnyShape, unknown>, context: ConversionContext): JSONSchema {
+function convertDenyLiteralShape(shape: DenyLiteralShape<AnyShape, unknown>, context: ConversionContext): JSONSchema {
   const schema = context.get(shape.shape);
 
-  schema.not = { const: shape.excludedValue };
+  schema.not = { const: shape.deniedValue };
+
+  return schema;
+}
+
+function convertExcludeShape(shape: ExcludeShape<AnyShape, AnyShape>, context: ConversionContext): JSONSchema {
+  const schema = context.get(shape.shape);
+
+  schema.not = context.get(shape.excludedShape);
 
   return schema;
 }
@@ -267,13 +276,7 @@ function convertObjectShape(
   for (const key of shape.keys) {
     let valueShape = shape.shapes[key];
 
-    if (valueShape['_getInputTypes']().includes('undefined')) {
-      const nonOptionalValueShape = valueShape.nonOptional();
-
-      if (!(nonOptionalValueShape instanceof ExcludeShape)) {
-        valueShape = nonOptionalValueShape;
-      }
-    } else {
+    if (!valueShape.accepts(undefined)) {
       (required ||= []).push(key);
     }
 
@@ -298,7 +301,7 @@ function convertObjectShape(
 
 function convertNumberShape(shape: NumberShape): JSONSchema {
   const schema: JSONSchema = {
-    type: shape['_typePredicate'] === Number.isInteger ? 'integer' : 'number',
+    type: shape.isInteger ? 'integer' : 'number',
   };
 
   let check: Check | undefined;
@@ -344,11 +347,6 @@ function convertStringShape(shape: StringShape): JSONSchema {
   check = shape.getCheck('stringMinLength');
   if (check !== undefined) {
     schema.minLength = check.param;
-  }
-
-  check = shape.getCheck('stringRegex');
-  if (check !== undefined) {
-    schema.pattern = (check.param as RegExp).source;
   }
 
   return schema;

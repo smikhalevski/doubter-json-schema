@@ -3,12 +3,12 @@ export interface Dict<T = any> {
 }
 
 /**
- * @see {@linkcode https://json-schema.org/understanding-json-schema/reference/type.html Basic types}
+ * @see {@link https://json-schema.org/understanding-json-schema/reference/type.html Basic types}
  */
 export type JSONSchemaType = 'array' | 'boolean' | 'integer' | 'null' | 'number' | 'object' | 'string';
 
 /**
- * @see {@linkcode https://json-schema.org/draft/2020-12/json-schema-validation.html JSON Schema Validation: A Vocabulary for Structural Validation of JSON}
+ * @see {@link https://json-schema.org/draft/2020-12/json-schema-validation.html JSON Schema Validation: A Vocabulary for Structural Validation of JSON}
  */
 export interface JSONSchema
   extends StringKeywords,
@@ -48,7 +48,7 @@ export interface JSONSchema
 }
 
 /**
- * @see {@linkcode https://json-schema.org/understanding-json-schema/reference/string.html String}
+ * @see {@link https://json-schema.org/understanding-json-schema/reference/string.html String}
  */
 export interface StringKeywords {
   /**
@@ -73,7 +73,7 @@ export interface StringKeywords {
 }
 
 /**
- * @see @see {@linkcode https://json-schema.org/understanding-json-schema/reference/numeric.html Numeric}
+ * @see {@link https://json-schema.org/understanding-json-schema/reference/numeric.html Numeric}
  */
 export interface NumericKeywords {
   /**
@@ -103,7 +103,7 @@ export interface NumericKeywords {
 }
 
 /**
- * @see {@linkcode https://json-schema.org/understanding-json-schema/reference/object.html Object}
+ * @see {@link https://json-schema.org/understanding-json-schema/reference/object.html Object}
  */
 export interface ObjectKeywords {
   /**
@@ -148,7 +148,7 @@ export interface ObjectKeywords {
 }
 
 /**
- * @see {@linkcode https://json-schema.org/understanding-json-schema/reference/array.html Array}
+ * @see {@link https://json-schema.org/understanding-json-schema/reference/array.html Array}
  */
 export interface ArrayKeywords {
   /**
@@ -204,7 +204,7 @@ export interface ArrayKeywords {
 }
 
 /**
- * @see {@linkcode https://json-schema.org/understanding-json-schema/reference/non_json_data.html Media: string-encoding non-JSON data}
+ * @see {@link https://json-schema.org/understanding-json-schema/reference/non_json_data.html Media: string-encoding non-JSON data}
  */
 export interface MediaJKeywords {
   /**
@@ -224,7 +224,7 @@ export interface MediaJKeywords {
 }
 
 /**
- * @see {@linkcode https://json-schema.org/understanding-json-schema/reference/combining.html Schema Composition}
+ * @see {@link https://json-schema.org/understanding-json-schema/reference/combining.html Schema Composition}
  */
 export interface CompositionKeywords {
   /**
@@ -249,7 +249,7 @@ export interface CompositionKeywords {
 }
 
 /**
- * @see {@linkcode https://json-schema.org/understanding-json-schema/reference/conditionals.html Applying Subschemas Conditionally}
+ * @see {@link https://json-schema.org/understanding-json-schema/reference/conditionals.html Applying Subschemas Conditionally}
  */
 export interface ConditionKeywords {
   /**
@@ -279,7 +279,7 @@ export interface ConditionKeywords {
 }
 
 /**
- * @see {@linkcode https://json-schema.org/understanding-json-schema/reference/generic.html Generic keywords}
+ * @see {@link https://json-schema.org/understanding-json-schema/reference/generic.html Generic keywords}
  */
 export interface GenericKeywords {
   /**
