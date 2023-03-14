@@ -3,12 +3,12 @@
     "importHelpers": true,
     "moduleResolution": "Node",
     "esModuleInterop": true,
+    "noUnusedLocals": true,
     "strict": true,
     "target": "ES5",
-    "module": "ESNext"
+    "module": "ES6"
   },
   "include": [
-    "rollup.config.ts",
-    "./src/**/*"
+    "./src/main/**/*"
   ]
 }

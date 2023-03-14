@@ -1,8 +1,9 @@
 {
-  "name": "Doubter",
+  "name": "Doubter × JSON Schema",
   "includeVersion": true,
   "excludePrivate": true,
   "excludeExternals": true,
-  "cleanOutputDir": true,
-  "out": "./docs"
+  "excludeInternal": true,
+  "disableSources": true,
+  "readme": "none"
 }
