@@ -38,21 +38,21 @@ export interface JSONSchemaOptions {
   /**
    * The key under which the definitions are stored.
    *
-   * @default 'definitions'
+   * @default definitions
    */
   definitionsKey?: string;
 
   /**
    * The schema base path.
    *
-   * @default '#'
+   * @default #
    */
   basePath?: string[];
 
   /**
-   * The schema dialect placed in `$schema`.
+   * The schema dialect placed in {@linkcode JSONSchema.$schema}.
    *
-   * @default 'https://json-schema.org/draft/2020-12/schema'
+   * @default https://json-schema.org/draft/2020-12/schema
    */
   dialect?: string;
 
