@@ -32,6 +32,7 @@ import { Dict, JSONSchema } from './types';
 export interface JSONSchemaOptions {
   definitions?: Dict<AnyShape>;
   dialect?: string;
+  unusedDependencies?: boolean;
 }
 
 export function toJSONSchema(shape: AnyShape, options?: JSONSchemaOptions): JSONSchema;
@@ -39,61 +40,93 @@ export function toJSONSchema(shape: AnyShape, options?: JSONSchemaOptions): JSON
 export function toJSONSchema(shapes: Dict<AnyShape>, options?: JSONSchemaOptions): JSONSchema;
 
 export function toJSONSchema(source: AnyShape | Dict<AnyShape>, options: JSONSchemaOptions = {}) {
-  const { definitions, dialect = 'https://json-schema.org/draft/2020-12/schema' } = options;
+  const { definitions, unusedDependencies, dialect = 'https://json-schema.org/draft/2020-12/schema' } = options;
 
-  const context = new ConversionContext(definitions);
+  const context = new ConversionContext();
+
+  if (definitions) {
+    for (const name in definitions) {
+      context.add(name, definitions[name]);
+    }
+  }
+  if (unusedDependencies) {
+    for (const name in definitions) {
+      context.get(definitions[name]);
+    }
+  }
+
+  let schema: JSONSchema;
 
   if (source instanceof Shape) {
-    const schema = context.get(source);
+    schema = context.get(source);
+  } else {
+    schema = {};
 
-    if (context.definitions !== undefined) {
-      schema.definitions = context.definitions;
+    for (const name in source) {
+      context.add(name, source[name]);
     }
-
-    schema.$schema = dialect;
-
-    return schema;
+    for (const name in source) {
+      context.get(source[name]);
+    }
   }
 
-  const schemas: Dict<JSONSchema> = {};
+  let definitions2: Dict | undefined;
 
-  for (const name in source) {
-    schemas[name] = context.get(source[name]);
+  context._q.forEach(q => {
+    (definitions2 ||= {})[q.name] = q.schema;
+  });
+
+  if (definitions2) {
+    schema.definitions = definitions2;
   }
 
-  return {
-    $schema: dialect,
-    definitions: Object.assign(schemas, context.definitions),
-  };
+  schema.$schema = dialect;
+
+  return schema;
 }
 
-export class ConversionContext {
-  names?: Map<AnyShape, string>;
-  definitions?: Dict<JSONSchema>;
+class ConversionContext {
+  _q = new Map<AnyShape, { schema: JSONSchema; name: any }>();
 
-  constructor(definitions: Dict<AnyShape> | undefined) {
-    if (definitions === undefined) {
-      return;
-    }
+  _defs = new Map<AnyShape, string>();
+  _stack = new Set<AnyShape>();
 
-    this.names = new Map();
-    this.definitions = {};
-
-    for (const name in definitions) {
-      this.names.set(definitions[name], name);
-    }
-    for (const name in definitions) {
-      this.definitions[name] = convertShape(definitions[name], this);
-    }
+  add(name: string, shape: AnyShape): void {
+    this._defs.set(shape, name);
   }
 
   get(shape: AnyShape): JSONSchema {
-    const name = this.names?.get(shape);
+    let q = this._q.get(shape);
 
-    if (name !== undefined) {
-      return { $ref: '#/definitions/' + name };
+    if (this._defs.has(shape)) {
+      if (q !== undefined) {
+        return { $ref: q.name };
+      }
+      q = { schema: {}, name: this._defs.get(shape) };
+      this._q.set(shape, q);
+    } else if (this._stack.has(shape)) {
+      if (q === undefined) {
+        q = { schema: {}, name: this._q.size };
+        this._q.set(shape, q);
+      }
+      return { $ref: q.name };
     }
-    return convertShape(shape, this);
+
+    this._stack.add(shape);
+
+    const schema = convertShape(shape, this);
+
+    this._stack.delete(shape);
+
+    q ??= this._q.get(shape);
+
+    if (q === undefined) {
+      return schema;
+    }
+
+    q.schema = schema;
+
+    return { $ref: q.name };
   }
 }
 
