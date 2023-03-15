@@ -2,7 +2,7 @@ import * as d from 'doubter';
 import { toJSONSchema } from '../main';
 
 describe('toJSONSchema', () => {
-  test('1', () => {
+  test('converts a shape', () => {
     const shape = d.object({
       aaa: d.string(),
     });
@@ -17,61 +17,7 @@ describe('toJSONSchema', () => {
     });
   });
 
-  test('2', () => {
-    const shape: any = d.lazy(() => shape);
-
-    expect(toJSONSchema(shape)).toEqual({
-      $schema: 'https://json-schema.org/draft/2020-12/schema',
-      $ref: 0,
-      definitions: {
-        '0': { $ref: 0 },
-      },
-    });
-  });
-
-  test('3', () => {
-    const shape: any = d.object({
-      aaa: d.lazy(() => shape),
-    });
-
-    expect(toJSONSchema(shape)).toEqual({
-      $schema: 'https://json-schema.org/draft/2020-12/schema',
-      $ref: 0,
-      definitions: {
-        '0': {
-          type: 'object',
-          properties: {
-            aaa: { $ref: 0 },
-          },
-          required: ['aaa'],
-        },
-      },
-    });
-  });
-
-  test('4', () => {
-    const shape: any = d.object({
-      aaa: d.lazy(() => shape),
-      bbb: d.lazy(() => shape),
-    });
-
-    expect(toJSONSchema(shape)).toEqual({
-      $schema: 'https://json-schema.org/draft/2020-12/schema',
-      $ref: 0,
-      definitions: {
-        '0': {
-          type: 'object',
-          properties: {
-            aaa: { $ref: 0 },
-            bbb: { $ref: 0 },
-          },
-          required: ['aaa', 'bbb'],
-        },
-      },
-    });
-  });
-
-  test('5', () => {
+  test('does not reference a shared schema', () => {
     const shape1 = d.object({
       ccc: d.string(),
     });
@@ -104,44 +50,100 @@ describe('toJSONSchema', () => {
     });
   });
 
-  test('6', () => {
-    const shape1: any = d.object({
-      bbb: d.object({
-        ccc: d.lazy(() => shape1),
-      }),
-    });
+  describe('cyclic dependencies', () => {
+    test('converts a immediate cyclic schema', () => {
+      const shape: any = d.lazy(() => shape);
 
-    const shape2 = d.object({
-      aaa: shape1,
-    });
-
-    expect(toJSONSchema(shape2)).toEqual({
-      $schema: 'https://json-schema.org/draft/2020-12/schema',
-      type: 'object',
-      properties: {
-        aaa: { $ref: 0 },
-      },
-      required: ['aaa'],
-      definitions: {
-        '0': {
-          type: 'object',
-          properties: {
-            bbb: {
-              type: 'object',
-              properties: {
-                ccc: { $ref: 0 },
-              },
-              required: ['ccc'],
-            },
-          },
-          required: ['bbb'],
+      expect(toJSONSchema(shape)).toEqual({
+        $schema: 'https://json-schema.org/draft/2020-12/schema',
+        $ref: '#/definitions/shape1',
+        definitions: {
+          shape1: { $ref: '#/definitions/shape1' },
         },
-      },
+      });
+    });
+
+    test('converts a cyclic schema with an intermediate shape', () => {
+      const shape: any = d.object({
+        aaa: d.lazy(() => shape),
+      });
+
+      expect(toJSONSchema(shape)).toEqual({
+        $schema: 'https://json-schema.org/draft/2020-12/schema',
+        $ref: '#/definitions/shape1',
+        definitions: {
+          shape1: {
+            type: 'object',
+            properties: {
+              aaa: { $ref: '#/definitions/shape1' },
+            },
+            required: ['aaa'],
+          },
+        },
+      });
+    });
+
+    test('multiple cyclic references', () => {
+      const shape: any = d.object({
+        aaa: d.lazy(() => shape),
+        bbb: d.lazy(() => shape),
+      });
+
+      expect(toJSONSchema(shape)).toEqual({
+        $schema: 'https://json-schema.org/draft/2020-12/schema',
+        $ref: '#/definitions/shape1',
+        definitions: {
+          shape1: {
+            type: 'object',
+            properties: {
+              aaa: { $ref: '#/definitions/shape1' },
+              bbb: { $ref: '#/definitions/shape1' },
+            },
+            required: ['aaa', 'bbb'],
+          },
+        },
+      });
+    });
+
+    test('deeply nested cyclic schema', () => {
+      const shape1: any = d.object({
+        bbb: d.object({
+          ccc: d.lazy(() => shape1),
+        }),
+      });
+
+      const shape2 = d.object({
+        aaa: shape1,
+      });
+
+      expect(toJSONSchema(shape2)).toEqual({
+        $schema: 'https://json-schema.org/draft/2020-12/schema',
+        type: 'object',
+        properties: {
+          aaa: { $ref: '#/definitions/shape1' },
+        },
+        required: ['aaa'],
+        definitions: {
+          shape1: {
+            type: 'object',
+            properties: {
+              bbb: {
+                type: 'object',
+                properties: {
+                  ccc: { $ref: '#/definitions/shape1' },
+                },
+                required: ['ccc'],
+              },
+            },
+            required: ['bbb'],
+          },
+        },
+      });
     });
   });
 
   describe('definitions', () => {
-    test('1', () => {
+    test('converts definitions', () => {
       const shape1 = d.string();
 
       const shape2 = d.object({
@@ -152,7 +154,7 @@ describe('toJSONSchema', () => {
         $schema: 'https://json-schema.org/draft/2020-12/schema',
         type: 'object',
         properties: {
-          aaa: { $ref: 'xxx' },
+          aaa: { $ref: '#/definitions/xxx' },
         },
         required: ['aaa'],
         definitions: {
@@ -161,7 +163,7 @@ describe('toJSONSchema', () => {
       });
     });
 
-    test('2', () => {
+    test('converts definitions with a cyclic schema', () => {
       const shape1: any = d.object({
         bbb: d.lazy(() => shape1),
       });
@@ -174,14 +176,14 @@ describe('toJSONSchema', () => {
         $schema: 'https://json-schema.org/draft/2020-12/schema',
         type: 'object',
         properties: {
-          aaa: { $ref: 'xxx' },
+          aaa: { $ref: '#/definitions/xxx' },
         },
         required: ['aaa'],
         definitions: {
           xxx: {
             type: 'object',
             properties: {
-              bbb: { $ref: 'xxx' },
+              bbb: { $ref: '#/definitions/xxx' },
             },
             required: ['bbb'],
           },
@@ -189,19 +191,19 @@ describe('toJSONSchema', () => {
       });
     });
 
-    test('3', () => {
+    test('converts definitions with immediate cyclic schema', () => {
       const shape: any = d.lazy(() => shape);
 
       expect(toJSONSchema(shape, { definitions: { xxx: shape } })).toEqual({
         $schema: 'https://json-schema.org/draft/2020-12/schema',
-        $ref: 'xxx',
+        $ref: '#/definitions/xxx',
         definitions: {
-          xxx: { $ref: 'xxx' },
+          xxx: { $ref: '#/definitions/xxx' },
         },
       });
     });
 
-    test('ignores unused dependencies', () => {
+    test('ignores unused definitions', () => {
       const shape1 = d.number();
 
       const shape2 = d.object({
@@ -218,14 +220,14 @@ describe('toJSONSchema', () => {
       });
     });
 
-    test('adds unused dependencies', () => {
+    test('adds unused definitions', () => {
       const shape1 = d.number();
 
       const shape2 = d.object({
         aaa: d.string(),
       });
 
-      expect(toJSONSchema(shape2, { definitions: { xxx: shape1 }, unusedDependencies: true })).toEqual({
+      expect(toJSONSchema(shape2, { definitions: { xxx: shape1 }, unusedDefinitions: true })).toEqual({
         $schema: 'https://json-schema.org/draft/2020-12/schema',
         type: 'object',
         properties: {
@@ -237,10 +239,30 @@ describe('toJSONSchema', () => {
         },
       });
     });
+
+    test('custom definitions key', () => {
+      const shape1 = d.number();
+
+      const shape2 = d.object({
+        aaa: shape1,
+      });
+
+      expect(toJSONSchema(shape2, { definitions: { xxx: shape1 }, definitionsKey: 'zzz' })).toEqual({
+        $schema: 'https://json-schema.org/draft/2020-12/schema',
+        type: 'object',
+        properties: {
+          aaa: { $ref: '#/zzz/xxx' },
+        },
+        required: ['aaa'],
+        zzz: {
+          xxx: { type: 'number' },
+        },
+      });
+    });
   });
 
-  describe('dict', () => {
-    test('1', () => {
+  describe('shape mapping', () => {
+    test('converts a shape mapping', () => {
       const shape = d.string();
 
       expect(toJSONSchema({ xxx: shape })).toEqual({
@@ -251,7 +273,7 @@ describe('toJSONSchema', () => {
       });
     });
 
-    test('2', () => {
+    test('converts a shape mapping with references', () => {
       const shape1 = d.string();
 
       const shape2 = d.object({
@@ -264,11 +286,33 @@ describe('toJSONSchema', () => {
           xxx: {
             type: 'object',
             properties: {
-              aaa: { $ref: 'yyy' },
+              aaa: { $ref: '#/definitions/yyy' },
             },
             required: ['aaa'],
           },
           yyy: { type: 'string' },
+        },
+      });
+    });
+
+    test('converts a shape mapping with cross references', () => {
+      const shape1: any = d.lazy(() => shape2);
+
+      const shape2 = d.object({
+        aaa: shape1,
+      });
+
+      expect(toJSONSchema({ xxx: shape2, yyy: shape1 })).toEqual({
+        $schema: 'https://json-schema.org/draft/2020-12/schema',
+        definitions: {
+          xxx: {
+            type: 'object',
+            properties: {
+              aaa: { $ref: '#/definitions/yyy' },
+            },
+            required: ['aaa'],
+          },
+          yyy: { $ref: '#/definitions/xxx' },
         },
       });
     });

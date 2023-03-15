@@ -18,7 +18,7 @@ const shape = d.object({
   foo: d.string().optional(),
   bar: d.number().gt(10)
 });
-// ⮕ Shape<{ foo: string | undefined, bar: number }>
+// ⮕ Shape<{ foo?: string | undefined, bar: number }>
 
 const schema = toJSONSchema(shape);
 ```

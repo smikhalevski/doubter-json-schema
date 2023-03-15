@@ -30,54 +30,101 @@ import {
 import { Dict, JSONSchema } from './types';
 
 export interface JSONSchemaOptions {
+  /**
+   * The mapping from the definition name to a shape that is converted to the JSON schema.
+   */
   definitions?: Dict<AnyShape>;
+
+  /**
+   * The key under which the definitions are stored.
+   *
+   * @default 'definitions'
+   */
+  definitionsKey?: string;
+
+  /**
+   * The schema base path.
+   *
+   * @default '#'
+   */
+  basePath?: string[];
+
+  /**
+   * The schema dialect placed in `$schema`.
+   *
+   * @default 'https://json-schema.org/draft/2020-12/schema'
+   */
   dialect?: string;
-  unusedDependencies?: boolean;
+
+  /**
+   * If `true` then definitions from {@linkcode definitions} that aren't referenced, are still rendered under
+   * {@linkcode definitionsKey}. Otherwise, those definitions aren't rendered.
+   */
+  unusedDefinitions?: boolean;
 }
 
+/**
+ * Converts the shape to a JSON schema.
+ *
+ * @param shape The shape to convert.
+ * @param options The JSON schema options.
+ */
 export function toJSONSchema(shape: AnyShape, options?: JSONSchemaOptions): JSONSchema;
 
+/**
+ * Converts definitions to a JSON schema.
+ *
+ * @param shapes The mapping from a shape name to shape.
+ * @param options The JSON schema options.
+ */
 export function toJSONSchema(shapes: Dict<AnyShape>, options?: JSONSchemaOptions): JSONSchema;
 
 export function toJSONSchema(source: AnyShape | Dict<AnyShape>, options: JSONSchemaOptions = {}) {
-  const { definitions, unusedDependencies, dialect = 'https://json-schema.org/draft/2020-12/schema' } = options;
+  const {
+    definitions,
+    definitionsKey = 'definitions',
+    basePath = ['#'],
+    unusedDefinitions,
+    dialect = 'https://json-schema.org/draft/2020-12/schema',
+  } = options;
 
-  const context = new ConversionContext();
+  const converter = new Converter(basePath.join('/') + '/' + definitionsKey + '/');
 
-  if (definitions) {
+  if (definitions !== undefined) {
     for (const name in definitions) {
-      context.add(name, definitions[name]);
-    }
-  }
-  if (unusedDependencies) {
-    for (const name in definitions) {
-      context.get(definitions[name]);
+      converter.addDefinition(name, definitions[name]);
     }
   }
 
   let schema: JSONSchema;
 
   if (source instanceof Shape) {
-    schema = context.get(source);
+    schema = converter.convert(source);
   } else {
     schema = {};
 
     for (const name in source) {
-      context.add(name, source[name]);
+      converter.addDefinition(name, source[name]);
     }
     for (const name in source) {
-      context.get(source[name]);
+      converter.convert(source[name]);
     }
   }
 
-  let definitions2: Dict | undefined;
+  if (definitions !== undefined && unusedDefinitions) {
+    for (const name in definitions) {
+      converter.convert(definitions[name]);
+    }
+  }
 
-  context._q.forEach(q => {
-    (definitions2 ||= {})[q.name] = q.schema;
+  let results: Dict | undefined;
+
+  converter.results.forEach(result => {
+    (results ||= {})[result.name] = result.schema;
   });
 
-  if (definitions2) {
-    schema.definitions = definitions2;
+  if (results !== undefined) {
+    schema[definitionsKey] = results;
   }
 
   schema.$schema = dialect;
@@ -85,71 +132,119 @@ export function toJSONSchema(source: AnyShape | Dict<AnyShape>, options: JSONSch
   return schema;
 }
 
-class ConversionContext {
-  _q = new Map<AnyShape, { schema: JSONSchema; name: any }>();
+class Converter {
+  /**
+   * The named conversion results.
+   */
+  readonly results = new Map<AnyShape, { schema: JSONSchema | null; name: any }>();
 
-  _defs = new Map<AnyShape, string>();
-  _stack = new Set<AnyShape>();
+  /**
+   * Map from a shape to a definition name.
+   */
+  protected _definitions = new Map<AnyShape, string>();
 
-  add(name: string, shape: AnyShape): void {
-    this._defs.set(shape, name);
+  /**
+   * The stack of shapes to detect the cyclic shapes dependencies.
+   */
+  protected _stack = new Set<AnyShape>();
+
+  /**
+   * Occupied dependency names.
+   */
+  protected _names = new Set<string>();
+
+  /**
+   * The suffix added to dependency names created for cyclic shapes that aren't among definitions.
+   */
+  protected _namelessCounter = 0;
+
+  /**
+   * @param definitionsPath The path prefix for schema references.
+   */
+  constructor(readonly definitionsPath: string) {}
+
+  /**
+   * Adds or replaces a definition.
+   */
+  addDefinition(name: string, shape: AnyShape): void {
+    this._definitions.set(shape, name);
+    this._names.add(name);
   }
 
-  get(shape: AnyShape): JSONSchema {
-    let q = this._q.get(shape);
+  convert(shape: AnyShape): JSONSchema {
+    const { results, definitionsPath, _stack, _names } = this;
 
-    if (this._defs.has(shape)) {
-      if (q !== undefined) {
-        return { $ref: q.name };
+    let result = results.get(shape);
+    let name = this._definitions.get(shape);
+
+    if (name !== undefined) {
+      // Definition
+
+      if (result !== undefined) {
+        return { $ref: definitionsPath + name };
       }
-      q = { schema: {}, name: this._defs.get(shape) };
-      this._q.set(shape, q);
-    } else if (this._stack.has(shape)) {
-      if (q === undefined) {
-        q = { schema: {}, name: this._q.size };
-        this._q.set(shape, q);
+
+      result = { schema: null, name };
+
+      results.set(shape, result);
+    } else if (_stack.has(shape)) {
+      // Cyclic dependency
+
+      if (result !== undefined) {
+        return { $ref: definitionsPath + result.name };
       }
-      return { $ref: q.name };
+
+      do {
+        name = 'shape' + ++this._namelessCounter;
+      } while (_names.has(name));
+
+      _names.add(name);
+
+      result = { schema: null, name };
+
+      results.set(shape, result);
+
+      return { $ref: definitionsPath + name };
     }
 
-    this._stack.add(shape);
+    _stack.add(shape);
 
     const schema = convertShape(shape, this);
 
-    this._stack.delete(shape);
+    _stack.delete(shape);
 
-    q ??= this._q.get(shape);
+    result ??= results.get(shape);
 
-    if (q === undefined) {
-      return schema;
+    if (result !== undefined) {
+      result.schema = schema;
+
+      return { $ref: definitionsPath + result.name };
     }
 
-    q.schema = schema;
-
-    return { $ref: q.name };
+    return schema;
   }
 }
 
-function convertShape(shape: AnyShape, context: ConversionContext): JSONSchema {
+function convertShape(shape: AnyShape, converter: Converter): JSONSchema {
   if (!(shape instanceof Shape)) {
     throw new Error('Expected a shape');
   }
 
   if (shape instanceof TransformShape) {
   } else if (shape instanceof CatchShape || shape instanceof LazyShape) {
-    return context.get(shape.shape);
+    return converter.convert(shape.shape);
   } else if (shape instanceof PipeShape) {
-    return context.get(shape.inputShape);
+    return converter.convert(shape.inputShape);
   }
 
   let schema: JSONSchema;
 
   if (shape instanceof ReplaceLiteralShape) {
-    schema = convertReplaceLiteralShape(shape, context);
+    schema = convertReplaceLiteralShape(shape, converter);
   } else if (shape instanceof DenyLiteralShape) {
-    schema = convertDenyLiteralShape(shape, context);
+    schema = convertDenyLiteralShape(shape, converter);
   } else if (shape instanceof ExcludeShape) {
-    schema = convertExcludeShape(shape, context);
+    schema = convertExcludeShape(shape, converter);
   } else if (shape instanceof NumberShape) {
     schema = convertNumberShape(shape);
   } else if (shape instanceof NeverShape) {
@@ -161,11 +256,11 @@ function convertShape(shape: AnyShape, context: ConversionContext): JSONSchema {
   } else if (shape instanceof EnumShape) {
     schema = { enum: shape.values.slice(0) };
   } else if (shape instanceof UnionShape) {
-    schema = { anyOf: convertShapes(shape.shapes, context) };
+    schema = { anyOf: convertShapes(shape.shapes, converter) };
   } else if (shape instanceof ObjectShape) {
-    schema = convertObjectShape(shape, context);
+    schema = convertObjectShape(shape, converter);
   } else if (shape instanceof RecordShape) {
-    schema = convertRecordShape(shape, context);
+    schema = convertRecordShape(shape, converter);
   } else if (shape instanceof ConstShape) {
     schema = convertConstShape(shape);
   } else if (shape instanceof BooleanShape) {
@@ -173,15 +268,15 @@ function convertShape(shape: AnyShape, context: ConversionContext): JSONSchema {
   } else if (shape instanceof PromiseShape) {
     schema = { type: 'object' };
   } else if (shape instanceof ArrayShape) {
-    schema = convertArrayShape(shape, context);
+    schema = convertArrayShape(shape, converter);
   } else if (shape instanceof SetShape) {
-    schema = convertSetShape(shape, context);
+    schema = convertSetShape(shape, converter);
   } else if (shape instanceof MapShape) {
-    schema = convertMapShape(shape, context);
+    schema = convertMapShape(shape, converter);
   } else if (shape instanceof DateShape) {
     schema = { type: 'string', format: 'date-time' };
   } else if (shape instanceof IntersectionShape) {
-    schema = { allOf: convertShapes(shape.shapes, context) };
+    schema = { allOf: convertShapes(shape.shapes, converter) };
   } else if (shape instanceof InstanceShape) {
     schema = { type: 'object' };
   } else {
@@ -195,39 +290,39 @@ function convertShape(shape: AnyShape, context: ConversionContext): JSONSchema {
   return schema;
 }
 
-function convertShapes(shapes: AnyShape[], context: ConversionContext): Array<JSONSchema> {
+function convertShapes(shapes: AnyShape[], converter: Converter): Array<JSONSchema> {
   const schemas = [];
 
   for (const shape of shapes) {
-    schemas.push(context.get(shape));
+    schemas.push(converter.convert(shape));
   }
   return schemas;
 }
 
 function convertReplaceLiteralShape(
   shape: ReplaceLiteralShape<AnyShape, unknown, unknown>,
-  context: ConversionContext
+  converter: Converter
 ): JSONSchema {
   return {
     oneOf: [
       shape.inputValue === null || shape.inputValue === undefined ? { type: 'null' } : { const: shape.inputValue },
-      context.get(shape.shape),
+      converter.convert(shape.shape),
     ],
   };
 }
 
-function convertDenyLiteralShape(shape: DenyLiteralShape<AnyShape, unknown>, context: ConversionContext): JSONSchema {
-  const schema = context.get(shape.shape);
+function convertDenyLiteralShape(shape: DenyLiteralShape<AnyShape, unknown>, converter: Converter): JSONSchema {
+  const schema = converter.convert(shape.shape);
 
   schema.not = { const: shape.deniedValue };
 
   return schema;
 }
 
-function convertExcludeShape(shape: ExcludeShape<AnyShape, AnyShape>, context: ConversionContext): JSONSchema {
-  const schema = context.get(shape.shape);
+function convertExcludeShape(shape: ExcludeShape<AnyShape, AnyShape>, converter: Converter): JSONSchema {
+  const schema = converter.convert(shape.shape);
 
-  schema.not = context.get(shape.excludedShape);
+  schema.not = converter.convert(shape.excludedShape);
 
   return schema;
 }
@@ -239,16 +334,13 @@ function convertConstShape(shape: ConstShape<unknown>): JSONSchema {
   return { const: shape.value };
 }
 
-function convertArrayShape(
-  shape: ArrayShape<AnyShape[] | null, AnyShape | null>,
-  context: ConversionContext
-): JSONSchema {
+function convertArrayShape(shape: ArrayShape<AnyShape[] | null, AnyShape | null>, converter: Converter): JSONSchema {
   const schema: JSONSchema = { type: 'array' };
 
-  schema.items = shape.restShape !== null ? context.get(shape.restShape) : false;
+  schema.items = shape.restShape !== null ? converter.convert(shape.restShape) : false;
 
   if (shape.shapes !== null && shape.shapes.length !== 0) {
-    schema.prefixItems = convertShapes(shape.shapes, context);
+    schema.prefixItems = convertShapes(shape.shapes, converter);
   }
 
   let check: Check | undefined;
@@ -266,10 +358,10 @@ function convertArrayShape(
   return schema;
 }
 
-function convertSetShape(shape: SetShape<AnyShape>, context: ConversionContext): JSONSchema {
+function convertSetShape(shape: SetShape<AnyShape>, converter: Converter): JSONSchema {
   const schema: JSONSchema = { type: 'array', uniqueItems: true };
 
-  schema.items = context.get(shape.shape);
+  schema.items = converter.convert(shape.shape);
 
   let check: Check | undefined;
 
@@ -286,34 +378,31 @@ function convertSetShape(shape: SetShape<AnyShape>, context: ConversionContext):
   return schema;
 }
 
-function convertMapShape(shape: MapShape<AnyShape, AnyShape>, context: ConversionContext): JSONSchema {
+function convertMapShape(shape: MapShape<AnyShape, AnyShape>, converter: Converter): JSONSchema {
   return {
     type: 'array',
     items: {
       type: 'array',
-      prefixItems: [context.get(shape.keyShape), context.get(shape.valueShape)],
+      prefixItems: [converter.convert(shape.keyShape), converter.convert(shape.valueShape)],
       items: false,
     },
   };
 }
 
-function convertObjectShape(
-  shape: ObjectShape<Dict<AnyShape>, AnyShape | null>,
-  context: ConversionContext
-): JSONSchema {
+function convertObjectShape(shape: ObjectShape<Dict<AnyShape>, AnyShape | null>, converter: Converter): JSONSchema {
   let properties: Dict<JSONSchema> | undefined;
   let required: string[] | undefined;
 
   const schema: JSONSchema = { type: 'object' };
 
   for (const key of shape.keys) {
-    let valueShape = shape.shapes[key];
+    const valueShape = shape.shapes[key];
 
     if (!valueShape.accepts(undefined)) {
       (required ||= []).push(key);
     }
 
-    (properties ||= {})[key] = context.get(valueShape);
+    (properties ||= {})[key] = converter.convert(valueShape);
   }
 
   if (properties !== undefined) {
@@ -324,7 +413,7 @@ function convertObjectShape(
   }
 
   if (shape.restShape !== null) {
-    schema.additionalProperties = context.get(shape.restShape);
+    schema.additionalProperties = converter.convert(shape.restShape);
   } else if (shape.keysMode === 'exact') {
     schema.additionalProperties = false;
   }
@@ -387,12 +476,12 @@ function convertStringShape(shape: StringShape): JSONSchema {
 
 function convertRecordShape(
   shape: RecordShape<Shape<string, PropertyKey> | null, AnyShape>,
-  context: ConversionContext
+  converter: Converter
 ): JSONSchema {
-  const schema: JSONSchema = { additionalProperties: context.get(shape.valueShape) };
+  const schema: JSONSchema = { additionalProperties: converter.convert(shape.valueShape) };
 
   if (shape.keyShape !== null) {
-    schema.propertyNames = context.get(shape.keyShape);
+    schema.propertyNames = converter.convert(shape.keyShape);
   }
   return schema;
 }
