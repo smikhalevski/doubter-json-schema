@@ -303,11 +303,12 @@ function convertReplaceLiteralShape(
   shape: ReplaceLiteralShape<AnyShape, unknown, unknown>,
   converter: Converter
 ): JSONSchema {
+  if (shape.inputValue === undefined) {
+    return converter.convert(shape.shape);
+  }
+
   return {
-    oneOf: [
-      shape.inputValue === null || shape.inputValue === undefined ? { type: 'null' } : { const: shape.inputValue },
-      converter.convert(shape.shape),
-    ],
+    oneOf: [shape.inputValue === null ? { type: 'null' } : { const: shape.inputValue }, converter.convert(shape.shape)],
   };
 }
 
