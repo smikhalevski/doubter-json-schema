@@ -1,4 +1,4 @@
-# Doubter &times; JSON Schema&ensp;[![build](https://github.com/smikhalevski/doubter-json-schema/actions/workflows/master.yml/badge.svg?branch=master&event=push)](https://github.com/smikhalevski/doubter-json-schema/actions/workflows/master.yml)
+# Doubter &times; JSON Schema
 
 Converts [Doubter](https://github.com/smikhalevski/doubter) shapes from and to JSON schemas.
 
@@ -12,12 +12,13 @@ Define a shape:
 
 ```ts
 import * as d from 'doubter';
+import { toJSONSchema } from '@doubter/json-schema';
 
 const shape = d.object({
-  foo: d.string().optional(),
-  bar: d.number().gt(10)
+  name: d.string(),
+  age: d.number().gt(10).optional()
 });
-// ⮕ Shape<{ foo: string | undefined, bar: number }>
+// ⮕ Shape<{ name: string, age?: number | undefined }>
 
 const schema = toJSONSchema(shape);
 ```
@@ -29,17 +30,14 @@ The `schema` is a JSON schema object:
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
   "properties": {
-    "foo": {
-      "oneOf": [
-        { "type": "null" },
-        { "type": "string" }
-      ]
+    "name": {
+      "type": "string"
     },
-    "bar": {
+    "age": {
       "type": "number",
       "exclusiveMinimum": 10
     }
   },
-  "required": ["bar"]
+  "required": ["name"]
 }
 ```

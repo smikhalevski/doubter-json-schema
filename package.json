@@ -11,10 +11,9 @@
   ],
   "scripts": {
     "build": "rollup --config --configPlugin typescript",
-    "clean": "rimraf './lib' './docs' './coverage'",
+    "clean": "rimraf ./lib ./docs ./coverage",
     "test": "jest",
-    "docs:build": "typedoc 'src/main/index.ts'",
-    "docs:release": "npm run docs:build && SHA=$(git rev-parse --short HEAD) && ORIGIN=$(git config --get remote.origin.url) && TEMP=$(mktemp -d) && FROM=$(pwd) && git clone -b ghpages --single-branch $ORIGIN $TEMP && cd $TEMP && ls -A | grep -wv .git | xargs rm -rf && cp -R $FROM/docs/ $TEMP && git add . && git commit -m \"Updated docs ($SHA)\" && git push && rm -rf $TEMP"
+    "docs": "typedoc ./src/main/index.ts"
   },
   "repository": {
     "type": "git",
@@ -45,6 +44,6 @@
     "typescript": "^4.9.4"
   },
   "peerDependencies": {
-    "doubter": "^1.1.0"
+    "doubter": "^2.1.0"
   }
 }

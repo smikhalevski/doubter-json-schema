@@ -3,12 +3,12 @@ export interface Dict<T = any> {
 }
 
 /**
- * @see {@linkcode https://json-schema.org/understanding-json-schema/reference/type.html Basic types}
+ * [Basic types in JSON schema spec](https://json-schema.org/understanding-json-schema/reference/type.html)
  */
 export type JSONSchemaType = 'array' | 'boolean' | 'integer' | 'null' | 'number' | 'object' | 'string';
 
 /**
- * @see {@linkcode https://json-schema.org/draft/2020-12/json-schema-validation.html JSON Schema Validation: A Vocabulary for Structural Validation of JSON}
+ * [JSON Schema Validation: A Vocabulary for Structural Validation of JSON](https://json-schema.org/draft/2020-12/json-schema-validation.html)
  */
 export interface JSONSchema
   extends StringKeywords,
@@ -20,27 +20,27 @@ export interface JSONSchema
     ConditionKeywords,
     GenericKeywords {
   /**
-   * @see {@linkcode https://json-schema.org/understanding-json-schema/reference/schema.html#schema $schema}
+   * [`$schema` in JSON schema spec](https://json-schema.org/understanding-json-schema/reference/schema.html#schema)
    */
   $schema?: string;
 
   /**
-   * @see {@linkcode https://json-schema.org/understanding-json-schema/structuring.html#id $id}
+   * [`$id` in JSON schema spec](https://json-schema.org/understanding-json-schema/structuring.html#id)
    */
   $id?: string;
 
   /**
-   * @see {@linkcode https://json-schema.org/understanding-json-schema/structuring.html#ref $ref}
+   * [`$ref` in JSON schema spec](https://json-schema.org/understanding-json-schema/structuring.html#ref)
    */
   $ref?: string;
 
   /**
-   * @see {@linkcode https://json-schema.org/understanding-json-schema/reference/type.html type}
+   * [`type` in JSON schema spec](https://json-schema.org/understanding-json-schema/reference/type.html)
    */
   type?: JSONSchemaType | Array<JSONSchemaType>;
 
   /**
-   * @see {@linkcode https://json-schema.org/understanding-json-schema/structuring.html definitions}
+   * [`definitions` in JSON schema spec](https://json-schema.org/understanding-json-schema/structuring.html)
    */
   definitions?: Dict<JSONSchema | boolean>;
 
@@ -48,277 +48,277 @@ export interface JSONSchema
 }
 
 /**
- * @see {@linkcode https://json-schema.org/understanding-json-schema/reference/string.html String}
+ * [String keywords in JSON schema spec](https://json-schema.org/understanding-json-schema/reference/string.html)
  */
 export interface StringKeywords {
   /**
-   * @see {@linkcode https://json-schema.org/understanding-json-schema/reference/string.html#length maxLength}
+   * [`maxLength` in JSON schema spec](https://json-schema.org/understanding-json-schema/reference/string.html#length)
    */
   maxLength?: number;
 
   /**
-   * @see {@linkcode https://json-schema.org/understanding-json-schema/reference/string.html#length minLength}
+   * [`minLength` in JSON schema spec](https://json-schema.org/understanding-json-schema/reference/string.html#length)
    */
   minLength?: number;
 
   /**
-   * @see {@linkcode https://json-schema.org/understanding-json-schema/reference/string.html#regular-expressions pattern}
+   * [`pattern` in JSON schema spec](https://json-schema.org/understanding-json-schema/reference/string.html#regular-expressions)
    */
   pattern?: string;
 
   /**
-   * @see {@linkcode https://json-schema.org/understanding-json-schema/reference/string.html#format format}
+   * [`format` in JSON schema spec](https://json-schema.org/understanding-json-schema/reference/string.html#format)
    */
   format?: string;
 }
 
 /**
- * @see @see {@linkcode https://json-schema.org/understanding-json-schema/reference/numeric.html Numeric}
+ * [Numeric keywords in JSON schema spec](https://json-schema.org/understanding-json-schema/reference/numeric.html)
  */
 export interface NumericKeywords {
   /**
-   * @see {@linkcode https://json-schema.org/understanding-json-schema/reference/numeric.html#multiples multipleOf}
+   * [`multipleOf` in JSON schema spec](https://json-schema.org/understanding-json-schema/reference/numeric.html#multiples)
    */
   multipleOf?: number;
 
   /**
-   * @see {@linkcode https://json-schema.org/understanding-json-schema/reference/numeric.html#range maximum}
+   * [`maximum` in JSON schema spec](https://json-schema.org/understanding-json-schema/reference/numeric.html#range)
    */
   maximum?: number;
 
   /**
-   * @see {@linkcode https://json-schema.org/understanding-json-schema/reference/numeric.html#range minimum}
+   * [`minimum` in JSON schema spec](https://json-schema.org/understanding-json-schema/reference/numeric.html#range)
    */
   minimum?: number;
 
   /**
-   * @see {@linkcode https://json-schema.org/understanding-json-schema/reference/numeric.html#range exclusiveMaximum}
+   * [`exclusiveMaximum` in JSON schema spec](https://json-schema.org/understanding-json-schema/reference/numeric.html#range)
    */
   exclusiveMaximum?: number;
 
   /**
-   * @see {@linkcode https://json-schema.org/understanding-json-schema/reference/numeric.html#range exclusiveMinimum}
+   * [`exclusiveMinimum` in JSON schema spec](https://json-schema.org/understanding-json-schema/reference/numeric.html#range)
    */
   exclusiveMinimum?: number;
 }
 
 /**
- * @see {@linkcode https://json-schema.org/understanding-json-schema/reference/object.html Object}
+ * [Object keywords in JSON schema spec](https://json-schema.org/understanding-json-schema/reference/object.html)
  */
 export interface ObjectKeywords {
   /**
-   * @see {@linkcode https://json-schema.org/understanding-json-schema/reference/object.html#properties properties}
+   * [`properties` in JSON schema spec](https://json-schema.org/understanding-json-schema/reference/object.html#properties)
    */
   properties?: Dict<JSONSchema | boolean>;
 
   /**
-   * @see {@linkcode https://json-schema.org/understanding-json-schema/reference/object.html#pattern-properties patternProperties}
+   * [`patternProperties` in JSON schema spec](https://json-schema.org/understanding-json-schema/reference/object.html#pattern-properties)
    */
   patternProperties?: Dict<JSONSchema | boolean>;
 
   /**
-   * @see {@linkcode https://json-schema.org/understanding-json-schema/reference/object.html#additional-properties additionalProperties}
+   * [`additionalProperties` in JSON schema spec](https://json-schema.org/understanding-json-schema/reference/object.html#additional-properties)
    */
   additionalProperties?: JSONSchema | boolean;
 
   /**
-   * @see {@linkcode https://json-schema.org/understanding-json-schema/reference/object.html#unevaluated-properties unevaluatedProperties}
+   * [`unevaluatedProperties` in JSON schema spec](https://json-schema.org/understanding-json-schema/reference/object.html#unevaluated-properties)
    */
   unevaluatedProperties?: JSONSchema | boolean;
 
   /**
-   * @see {@linkcode https://json-schema.org/understanding-json-schema/reference/object.html#required-properties required}
+   * [`required` in JSON schema spec](https://json-schema.org/understanding-json-schema/reference/object.html#required-properties)
    */
   required?: string[];
 
   /**
-   * @see {@linkcode https://json-schema.org/understanding-json-schema/reference/object.html#property-names propertyNames}
+   * [`propertyNames` in JSON schema spec](https://json-schema.org/understanding-json-schema/reference/object.html#property-names)
    */
   propertyNames?: JSONSchema | boolean;
 
   /**
-   * @see {@linkcode https://json-schema.org/understanding-json-schema/reference/object.html#size maxProperties}
+   * [`maxProperties` in JSON schema spec](https://json-schema.org/understanding-json-schema/reference/object.html#size)
    */
   maxProperties?: number;
 
   /**
-   * @see {@linkcode https://json-schema.org/understanding-json-schema/reference/object.html#size minProperties}
+   * [`minProperties` in JSON schema spec](https://json-schema.org/understanding-json-schema/reference/object.html#size)
    */
   minProperties?: number;
 }
 
 /**
- * @see {@linkcode https://json-schema.org/understanding-json-schema/reference/array.html Array}
+ * [Array keywords in JSON schema spec](https://json-schema.org/understanding-json-schema/reference/array.html)
  */
 export interface ArrayKeywords {
   /**
-   * @see {@linkcode https://json-schema.org/understanding-json-schema/reference/array.html#items items}
+   * [`items` in JSON schema spec](https://json-schema.org/understanding-json-schema/reference/array.html#items)
    */
   items?: JSONSchema | boolean | Array<JSONSchema | boolean>;
 
   /**
-   * @see {@linkcode https://json-schema.org/understanding-json-schema/reference/array.html#tuple-validation prefixItems}
+   * [`prefixItems` in JSON schema spec](https://json-schema.org/understanding-json-schema/reference/array.html#tuple-validation)
    */
   prefixItems?: Array<JSONSchema | boolean>;
 
   /**
    * @deprecated
-   * @see {@linkcode https://json-schema.org/understanding-json-schema/reference/array.html#additional-items additionalItems}
+   * [`additionalItems` in JSON schema spec](https://json-schema.org/understanding-json-schema/reference/array.html#additional-items)
    */
   additionalItems?: JSONSchema | boolean;
 
   /**
-   * @see {@linkcode https://json-schema.org/understanding-json-schema/reference/array.html#unevaluated-items unevaluatedItems}
+   * [`unevaluatedItems` in JSON schema spec](https://json-schema.org/understanding-json-schema/reference/array.html#unevaluated-items)
    */
   unevaluatedItems?: JSONSchema | boolean;
 
   /**
-   * @see {@linkcode https://json-schema.org/understanding-json-schema/reference/array.html#length minItems}
+   * [`minItems` in JSON schema spec](https://json-schema.org/understanding-json-schema/reference/array.html#length)
    */
   minItems?: number;
 
   /**
-   * @see {@linkcode https://json-schema.org/understanding-json-schema/reference/array.html#length maxItems}
+   * [`maxItems` in JSON schema spec](https://json-schema.org/understanding-json-schema/reference/array.html#length)
    */
   maxItems?: number;
 
   /**
-   * @see {@linkcode https://json-schema.org/understanding-json-schema/reference/array.html#contains contains}
+   * [`contains` in JSON schema spec](https://json-schema.org/understanding-json-schema/reference/array.html#contains)
    */
   contains?: JSONSchema | boolean;
 
   /**
-   * @see {@linkcode https://json-schema.org/understanding-json-schema/reference/array.html#mincontains-maxcontains minContains}
+   * [`minContains` in JSON schema spec](https://json-schema.org/understanding-json-schema/reference/array.html#mincontains-maxcontains)
    */
   minContains?: number;
 
   /**
-   * @see {@linkcode https://json-schema.org/understanding-json-schema/reference/array.html#mincontains-maxcontains maxContains}
+   * [`maxContains` in JSON schema spec](https://json-schema.org/understanding-json-schema/reference/array.html#mincontains-maxcontains)
    */
   maxContains?: number;
 
   /**
-   * @see {@linkcode https://json-schema.org/understanding-json-schema/reference/array.html#uniqueness uniqueItems}
+   * [`uniqueItems` in JSON schema spec](https://json-schema.org/understanding-json-schema/reference/array.html#uniqueness)
    */
   uniqueItems?: boolean;
 }
 
 /**
- * @see {@linkcode https://json-schema.org/understanding-json-schema/reference/non_json_data.html Media: string-encoding non-JSON data}
+ * [Media: string-encoding non-JSON data in JSON schema spec](https://json-schema.org/understanding-json-schema/reference/non_json_data.html)
  */
 export interface MediaJKeywords {
   /**
-   * @see {@linkcode https://json-schema.org/understanding-json-schema/reference/non_json_data.html#contentencoding contentEncoding}
+   * [`contentEncoding` in JSON schema spec](https://json-schema.org/understanding-json-schema/reference/non_json_data.html#contentencoding)
    */
   contentEncoding?: string;
 
   /**
-   * @see {@linkcode https://json-schema.org/understanding-json-schema/reference/non_json_data.html#contentmediatype contentMediaType}
+   * [`contentMediaType` in JSON schema spec](https://json-schema.org/understanding-json-schema/reference/non_json_data.html#contentmediatype)
    */
   contentMediaType?: string;
 
   /**
-   * @see {@linkcode https://json-schema.org/understanding-json-schema/reference/non_json_data.html#contentschema contentSchema}
+   * [`contentSchema` in JSON schema spec](https://json-schema.org/understanding-json-schema/reference/non_json_data.html#contentschema)
    */
   contentSchema?: JSONSchema | boolean;
 }
 
 /**
- * @see {@linkcode https://json-schema.org/understanding-json-schema/reference/combining.html Schema Composition}
+ * [Schema Composition keywords in JSON schema spec](https://json-schema.org/understanding-json-schema/reference/combining.html)
  */
 export interface CompositionKeywords {
   /**
-   * @see {@linkcode https://json-schema.org/understanding-json-schema/reference/combining.html#allof allOf}
+   * [`allOf` in JSON schema spec](https://json-schema.org/understanding-json-schema/reference/combining.html#allof)
    */
   allOf?: Array<JSONSchema | boolean>;
 
   /**
-   * @see {@linkcode https://json-schema.org/understanding-json-schema/reference/combining.html#anyof anyOf}
+   * [`anyOf` in JSON schema spec](https://json-schema.org/understanding-json-schema/reference/combining.html#anyof)
    */
   anyOf?: Array<JSONSchema | boolean>;
 
   /**
-   * @see {@linkcode https://json-schema.org/understanding-json-schema/reference/combining.html#oneof oneOf}
+   * [`oneOf` in JSON schema spec](https://json-schema.org/understanding-json-schema/reference/combining.html#oneof)
    */
   oneOf?: Array<JSONSchema | boolean>;
 
   /**
-   * @see {@linkcode https://json-schema.org/understanding-json-schema/reference/combining.html#not not}
+   * [`not` in JSON schema spec](https://json-schema.org/understanding-json-schema/reference/combining.html#not)
    */
   not?: JSONSchema | boolean;
 }
 
 /**
- * @see {@linkcode https://json-schema.org/understanding-json-schema/reference/conditionals.html Applying Subschemas Conditionally}
+ * [Applying Subschemas Conditionally in JSON schema spec](https://json-schema.org/understanding-json-schema/reference/conditionals.html)
  */
 export interface ConditionKeywords {
   /**
-   * @see {@linkcode https://json-schema.org/understanding-json-schema/reference/conditionals.html#dependentrequired dependentRequired}
+   * [`dependentRequired` in JSON schema spec](https://json-schema.org/understanding-json-schema/reference/conditionals.html#dependentrequired)
    */
   dependentRequired?: Dict<JSONSchema | string[] | boolean>;
 
   /**
-   * @see {@linkcode https://json-schema.org/understanding-json-schema/reference/conditionals.html#dependentschemas dependentSchemas}
+   * [`dependentSchemas` in JSON schema spec](https://json-schema.org/understanding-json-schema/reference/conditionals.html#dependentschemas)
    */
   dependentSchemas?: Dict<JSONSchema | boolean>;
 
   /**
-   * @see {@linkcode https://json-schema.org/understanding-json-schema/reference/conditionals.html#if-then-else if}
+   * [`if` in JSON schema spec](https://json-schema.org/understanding-json-schema/reference/conditionals.html#if-then-else)
    */
   if?: JSONSchema | boolean;
 
   /**
-   * @see {@linkcode https://json-schema.org/understanding-json-schema/reference/conditionals.html#if-then-else then}
+   * [`then` in JSON schema spec](https://json-schema.org/understanding-json-schema/reference/conditionals.html#if-then-else)
    */
   then?: JSONSchema | boolean;
 
   /**
-   * @see {@linkcode https://json-schema.org/understanding-json-schema/reference/conditionals.html#if-then-else else}
+   * [`else` in JSON schema spec](https://json-schema.org/understanding-json-schema/reference/conditionals.html#if-then-else)
    */
   else?: JSONSchema | boolean;
 }
 
 /**
- * @see {@linkcode https://json-schema.org/understanding-json-schema/reference/generic.html Generic keywords}
+ * [Generic  keywords in JSON schema spec](https://json-schema.org/understanding-json-schema/reference/generic.html)
  */
 export interface GenericKeywords {
   /**
-   * @see {@linkcode https://json-schema.org/understanding-json-schema/reference/generic.html?highlight=enum#enumerated-values enum}
+   * [`enum` in JSON schema spec](https://json-schema.org/understanding-json-schema/reference/generic.html?highlight=enum#enumerated-values)
    */
   enum?: any[];
 
   /**
-   * @see {@linkcode https://json-schema.org/understanding-json-schema/reference/generic.html?highlight=enum#constant-values const}
+   * [`const` in JSON schema spec](https://json-schema.org/understanding-json-schema/reference/generic.html?highlight=enum#constant-values)
    */
   const?: any;
 
   /**
-   * @see {@linkcode https://json-schema.org/understanding-json-schema/reference/generic.html?highlight=enum#annotations title}
+   * [`title` in JSON schema spec](https://json-schema.org/understanding-json-schema/reference/generic.html?highlight=enum#annotations)
    */
   title?: string;
 
   /**
-   * @see {@linkcode https://json-schema.org/understanding-json-schema/reference/generic.html?highlight=enum#annotations description}
+   * [`description` in JSON schema spec](https://json-schema.org/understanding-json-schema/reference/generic.html?highlight=enum#annotations)
    */
   description?: string;
 
   /**
-   * @see {@linkcode https://json-schema.org/understanding-json-schema/reference/generic.html?highlight=enum#annotations default}
+   * [`default` in JSON schema spec](https://json-schema.org/understanding-json-schema/reference/generic.html?highlight=enum#annotations)
    */
   default?: any;
 
   /**
-   * @see {@linkcode https://json-schema.org/understanding-json-schema/reference/generic.html?highlight=enum#annotations readOnly}
+   * [`readOnly` in JSON schema spec](https://json-schema.org/understanding-json-schema/reference/generic.html?highlight=enum#annotations)
    */
   readOnly?: boolean;
 
   /**
-   * @see {@linkcode https://json-schema.org/understanding-json-schema/reference/generic.html?highlight=enum#annotations writeOnly}
+   * [`writeOnly` in JSON schema spec](https://json-schema.org/understanding-json-schema/reference/generic.html?highlight=enum#annotations)
    */
   writeOnly?: boolean;
 
   /**
-   * @see {@linkcode https://json-schema.org/understanding-json-schema/reference/generic.html?highlight=enum#annotations examples}
+   * [`examples` in JSON schema spec](https://json-schema.org/understanding-json-schema/reference/generic.html?highlight=enum#annotations)
    */
   examples?: any[];
 }
