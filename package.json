@@ -1,6 +1,6 @@
 {
   "name": "@doubter/json-schema",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Converts Doubter shapes from and to JSON schemas.",
   "main": "./lib/index.js",
   "module": "./lib/index.mjs",
