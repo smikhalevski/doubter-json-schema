@@ -4,10 +4,10 @@ import {
   BigIntShape,
   BooleanShape,
   CatchShape,
-  Check,
   ConstShape,
+  ConvertShape,
   DateShape,
-  DenyLiteralShape,
+  DenyShape,
   EnumShape,
   ExcludeShape,
   InstanceShape,
@@ -20,11 +20,10 @@ import {
   PipeShape,
   PromiseShape,
   RecordShape,
-  ReplaceLiteralShape,
+  ReplaceShape,
   SetShape,
   Shape,
   StringShape,
-  TransformShape,
   UnionShape,
 } from 'doubter';
 import { Dict, JSONSchema } from './types';
@@ -38,21 +37,21 @@ export interface JSONSchemaOptions {
   /**
    * The key under which the definitions are stored.
    *
-   * @default definitions
+   * @default "definitions"
    */
   definitionsKey?: string;
 
   /**
    * The schema base path.
    *
-   * @default #
+   * @default "#"
    */
-  basePath?: string[];
+  basePath?: string;
 
   /**
    * The schema dialect placed in {@linkcode JSONSchema.$schema}.
    *
-   * @default https://json-schema.org/draft/2020-12/schema
+   * @default "https://json-schema.org/draft/2020-12/schema"
    */
   dialect?: string;
 
@@ -83,12 +82,12 @@ export function toJSONSchema(source: AnyShape | Dict<AnyShape>, options: JSONSch
   const {
     definitions,
     definitionsKey = 'definitions',
-    basePath = ['#'],
+    basePath = '#',
     unusedDefinitions,
     dialect = 'https://json-schema.org/draft/2020-12/schema',
   } = options;
 
-  const converter = new Converter(basePath.join('/') + '/' + definitionsKey + '/');
+  const converter = new Converter(basePath + '/' + definitionsKey + '/');
 
   if (definitions !== undefined) {
     for (const name in definitions) {
@@ -230,19 +229,21 @@ function convertShape(shape: AnyShape, converter: Converter): JSONSchema {
     throw new Error('Expected a shape');
   }
 
-  if (shape instanceof TransformShape) {
-  } else if (shape instanceof CatchShape || shape instanceof LazyShape) {
-    return converter.convert(shape.shape);
+  if (shape instanceof ConvertShape) {
+  } else if (shape instanceof CatchShape) {
+    return converter.convert(shape.baseShape);
+  } else if (shape instanceof LazyShape) {
+    return converter.convert(shape.providedShape);
   } else if (shape instanceof PipeShape) {
     return converter.convert(shape.inputShape);
   }
 
   let schema: JSONSchema;
 
-  if (shape instanceof ReplaceLiteralShape) {
-    schema = convertReplaceLiteralShape(shape, converter);
-  } else if (shape instanceof DenyLiteralShape) {
-    schema = convertDenyLiteralShape(shape, converter);
+  if (shape instanceof ReplaceShape) {
+    schema = convertReplaceShape(shape, converter);
+  } else if (shape instanceof DenyShape) {
+    schema = convertDenyShape(shape, converter);
   } else if (shape instanceof ExcludeShape) {
     schema = convertExcludeShape(shape, converter);
   } else if (shape instanceof NumberShape) {
@@ -299,21 +300,21 @@ function convertShapes(shapes: AnyShape[], converter: Converter): Array<JSONSche
   return schemas;
 }
 
-function convertReplaceLiteralShape(
-  shape: ReplaceLiteralShape<AnyShape, unknown, unknown>,
-  converter: Converter
-): JSONSchema {
+function convertReplaceShape(shape: ReplaceShape<AnyShape, unknown, unknown>, converter: Converter): JSONSchema {
   if (shape.inputValue === undefined) {
-    return converter.convert(shape.shape);
+    return converter.convert(shape.baseShape);
   }
 
   return {
-    oneOf: [shape.inputValue === null ? { type: 'null' } : { const: shape.inputValue }, converter.convert(shape.shape)],
+    oneOf: [
+      shape.inputValue === null ? { type: 'null' } : { const: shape.inputValue },
+      converter.convert(shape.baseShape),
+    ],
   };
 }
 
-function convertDenyLiteralShape(shape: DenyLiteralShape<AnyShape, unknown>, converter: Converter): JSONSchema {
-  const schema = converter.convert(shape.shape);
+function convertDenyShape(shape: DenyShape<AnyShape, unknown>, converter: Converter): JSONSchema {
+  const schema = converter.convert(shape.baseShape);
 
   schema.not = { const: shape.deniedValue };
 
@@ -321,7 +322,7 @@ function convertDenyLiteralShape(shape: DenyLiteralShape<AnyShape, unknown>, con
 }
 
 function convertExcludeShape(shape: ExcludeShape<AnyShape, AnyShape>, converter: Converter): JSONSchema {
-  const schema = converter.convert(shape.shape);
+  const schema = converter.convert(shape.baseShape);
 
   schema.not = converter.convert(shape.excludedShape);
 
@@ -335,25 +336,39 @@ function convertConstShape(shape: ConstShape<unknown>): JSONSchema {
   return { const: shape.value };
 }
 
-function convertArrayShape(shape: ArrayShape<AnyShape[] | null, AnyShape | null>, converter: Converter): JSONSchema {
+function convertArrayShape(shape: ArrayShape<AnyShape[], AnyShape | null>, converter: Converter): JSONSchema {
   const schema: JSONSchema = { type: 'array' };
 
   schema.items = shape.restShape !== null ? converter.convert(shape.restShape) : false;
 
-  if (shape.shapes !== null && shape.shapes.length !== 0) {
-    schema.prefixItems = convertShapes(shape.shapes, converter);
+  if (shape.headShapes !== null && shape.headShapes.length !== 0) {
+    schema.prefixItems = convertShapes(shape.headShapes, converter);
   }
 
-  let check: Check | undefined;
+  for (const { type, param } of shape.operations) {
+    switch (type) {
+      case 'array.max':
+        if (schema.maxItems === undefined || param < schema.maxItems) {
+          schema.maxItems = param;
+        }
+        break;
 
-  check = shape.getCheck('arrayMinLength');
-  if (check !== undefined) {
-    schema.minItems = check.param;
-  }
+      case 'array.min':
+        if (schema.minItems === undefined || param > schema.minItems) {
+          schema.minItems = param;
+        }
+        break;
 
-  check = shape.getCheck('arrayMaxLength');
-  if (check !== undefined) {
-    schema.maxItems = check.param;
+      case 'array.includes':
+        const paramSchema = param instanceof Shape ? convertShape(shape, converter) : { const: param };
+
+        if (schema.contains === undefined) {
+          schema.contains = paramSchema;
+        } else {
+          (schema.allOf ||= []).push({ type: 'array', contains: paramSchema });
+        }
+        break;
+    }
   }
 
   return schema;
@@ -362,18 +377,22 @@ function convertArrayShape(shape: ArrayShape<AnyShape[] | null, AnyShape | null>
 function convertSetShape(shape: SetShape<AnyShape>, converter: Converter): JSONSchema {
   const schema: JSONSchema = { type: 'array', uniqueItems: true };
 
-  schema.items = converter.convert(shape.shape);
+  schema.items = converter.convert(shape.valueShape);
 
-  let check: Check | undefined;
+  for (const { type, param } of shape.operations) {
+    switch (type) {
+      case 'set.max':
+        if (schema.maxItems === undefined || param < schema.maxItems) {
+          schema.maxItems = param;
+        }
+        break;
 
-  check = shape.getCheck('setMinSize');
-  if (check !== undefined) {
-    schema.minItems = check.param;
-  }
-
-  check = shape.getCheck('setMaxSize');
-  if (check !== undefined) {
-    schema.maxItems = check.param;
+      case 'set.min':
+        if (schema.minItems === undefined || param > schema.minItems) {
+          schema.minItems = param;
+        }
+        break;
+    }
   }
 
   return schema;
@@ -397,7 +416,7 @@ function convertObjectShape(shape: ObjectShape<Dict<AnyShape>, AnyShape | null>,
   const schema: JSONSchema = { type: 'object' };
 
   for (const key of shape.keys) {
-    const valueShape = shape.shapes[key];
+    const valueShape = shape.propShapes[key];
 
     if (!valueShape.accepts(undefined)) {
       (required ||= []).push(key);
@@ -423,35 +442,42 @@ function convertObjectShape(shape: ObjectShape<Dict<AnyShape>, AnyShape | null>,
 }
 
 function convertNumberShape(shape: NumberShape): JSONSchema {
-  const schema: JSONSchema = {
-    type: shape.isInteger ? 'integer' : 'number',
-  };
+  const schema: JSONSchema = { type: 'number' };
 
-  let check: Check | undefined;
+  for (const { type, param } of shape.operations) {
+    switch (type) {
+      case 'number.int':
+        schema.type = 'integer';
+        break;
 
-  check = shape.getCheck('numberMultipleOf');
-  if (check !== undefined) {
-    schema.multipleOf = check.param;
-  }
+      case 'number.lte':
+        if (schema.maximum === undefined || param > schema.maximum) {
+          schema.maximum = param;
+        }
+        break;
 
-  check = shape.getCheck('numberGreaterThanOrEqual');
-  if (check !== undefined) {
-    schema.minimum = check.param;
-  }
+      case 'number.gte':
+        if (schema.minimum === undefined || param < schema.minimum) {
+          schema.minimum = param;
+        }
+        break;
 
-  check = shape.getCheck('numberLessThanOrEqual');
-  if (check !== undefined) {
-    schema.maximum = check.param;
-  }
+      case 'number.lt':
+        if (schema.exclusiveMaximum === undefined || param > schema.exclusiveMaximum) {
+          schema.exclusiveMaximum = param;
+        }
+        break;
 
-  check = shape.getCheck('numberGreaterThan');
-  if (check !== undefined) {
-    schema.exclusiveMinimum = check.param;
-  }
+      case 'number.gt':
+        if (schema.exclusiveMinimum === undefined || param < schema.exclusiveMinimum) {
+          schema.exclusiveMinimum = param;
+        }
+        break;
 
-  check = shape.getCheck('numberLessThan');
-  if (check !== undefined) {
-    schema.exclusiveMaximum = check.param;
+      case 'number.multipleOf':
+        schema.multipleOf = param;
+        break;
+    }
   }
 
   return schema;
@@ -460,16 +486,32 @@ function convertNumberShape(shape: NumberShape): JSONSchema {
 function convertStringShape(shape: StringShape): JSONSchema {
   const schema: JSONSchema = { type: 'string' };
 
-  let check: Check | undefined;
+  for (const { type, param } of shape.operations) {
+    switch (type) {
+      case 'string.max':
+        if (schema.maxLength === undefined || param < schema.maxLength) {
+          schema.maxLength = param;
+        }
+        break;
 
-  check = shape.getCheck('stringMaxLength');
-  if (check !== undefined) {
-    schema.maxLength = check.param;
-  }
+      case 'string.min':
+        if (schema.minLength === undefined || param > schema.minLength) {
+          schema.minLength = param;
+        }
+        break;
 
-  check = shape.getCheck('stringMinLength');
-  if (check !== undefined) {
-    schema.minLength = check.param;
+      case 'string.regex':
+        if (schema.pattern === undefined) {
+          schema.pattern = param.toString();
+        } else {
+          (schema.allOf ||= []).push({ type: 'string', pattern: param });
+        }
+        break;
+
+      case 'string.format':
+        schema.format = param;
+        break;
+    }
   }
 
   return schema;

@@ -2,7 +2,8 @@
 
 Converts [Doubter](https://github.com/smikhalevski/doubter) shapes from and to JSON schemas.
 
-> **Warning**&ensp;This project is at the early development stage.
+> [!WARNING]\
+> This project is at the early development stage.
 
 ```shell
 npm install --save-prod @doubter/json-schema

@@ -5,5 +5,11 @@
   "excludeExternals": true,
   "excludeInternal": true,
   "disableSources": true,
-  "readme": "none"
+  "hideGenerator": true,
+  "readme": "none",
+  "tsconfig": "./tsconfig.json",
+  "customCss": "./node_modules/typedoc-custom-css/custom.css",
+  "entryPoints": [
+    "./src/main/index.ts"
+  ]
 }
