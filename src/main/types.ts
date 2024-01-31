@@ -15,7 +15,7 @@ export interface JSONSchema
     NumericKeywords,
     ObjectKeywords,
     ArrayKeywords,
-    MediaJKeywords,
+    MediaKeywords,
     CompositionKeywords,
     ConditionKeywords,
     GenericKeywords {
@@ -206,7 +206,7 @@ export interface ArrayKeywords {
 /**
  * [Media: string-encoding non-JSON data in JSON schema spec](https://json-schema.org/understanding-json-schema/reference/non_json_data.html)
  */
-export interface MediaJKeywords {
+export interface MediaKeywords {
   /**
    * [`contentEncoding` in JSON schema spec](https://json-schema.org/understanding-json-schema/reference/non_json_data.html#contentencoding)
    */
