@@ -131,7 +131,7 @@ export function toJSONSchema(source: AnyShape | Dict<AnyShape>, options: JSONSch
   return schema;
 }
 
-export class Converter {
+class Converter {
   /**
    * The named conversion results.
    */
@@ -374,7 +374,7 @@ function convertArrayShape(shape: ArrayShape<AnyShape[], AnyShape | null>, conve
   return schema;
 }
 
-export function convertSetShape(shape: SetShape<AnyShape>, converter: Converter): JSONSchema {
+function convertSetShape(shape: SetShape<AnyShape>, converter: Converter): JSONSchema {
   const schema: JSONSchema = { type: 'array', uniqueItems: true };
 
   schema.items = converter.convert(shape.valueShape);
@@ -441,7 +441,7 @@ function convertObjectShape(shape: ObjectShape<Dict<AnyShape>, AnyShape | null>,
   return schema;
 }
 
-export function convertNumberShape(shape: NumberShape): JSONSchema {
+function convertNumberShape(shape: NumberShape): JSONSchema {
   const schema: JSONSchema = { type: 'number' };
 
   for (const { type, param } of shape.operations) {
@@ -483,7 +483,7 @@ export function convertNumberShape(shape: NumberShape): JSONSchema {
   return schema;
 }
 
-export function convertStringShape(shape: StringShape): JSONSchema {
+function convertStringShape(shape: StringShape): JSONSchema {
   const schema: JSONSchema = { type: 'string' };
 
   for (const { type, param } of shape.operations) {
