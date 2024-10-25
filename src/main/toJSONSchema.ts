@@ -518,13 +518,13 @@ function convertStringShape(shape: StringShape): JSONSchema {
 }
 
 function convertRecordShape(
-  shape: RecordShape<Shape<string, PropertyKey> | null, AnyShape>,
+  shape: RecordShape<Shape<string, PropertyKey>, AnyShape>,
   converter: Converter
 ): JSONSchema {
-  const schema: JSONSchema = { additionalProperties: converter.convert(shape.valueShape) };
+  const schema: JSONSchema = { additionalProperties: converter.convert(shape.valuesShape) };
 
-  if (shape.keyShape !== null) {
-    schema.propertyNames = converter.convert(shape.keyShape);
+  if (shape.keysShape !== null) {
+    schema.propertyNames = converter.convert(shape.keysShape);
   }
   return schema;
 }
