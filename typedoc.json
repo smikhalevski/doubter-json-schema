@@ -11,5 +11,10 @@
   "customCss": "./node_modules/typedoc-custom-css/custom.css",
   "entryPoints": [
     "./src/main/index.ts"
-  ]
+  ],
+  "externalSymbolLinkMappings": {
+    "doubter": {
+      "Shape.annotations": "https://smikhalevski.github.io/doubter/latest/classes/core.Shape.html#annotations",
+    }
+  }
 }

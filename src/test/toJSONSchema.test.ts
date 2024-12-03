@@ -50,6 +50,55 @@ describe('toJSONSchema', () => {
     });
   });
 
+  test('adds title and description', () => {
+    const shape = d
+      .object({
+        aaa: d.string(),
+      })
+      .annotate({
+        title: 'xxx',
+        description: 'yyy',
+      });
+
+    expect(toJSONSchema(shape)).toEqual({
+      $schema: 'https://json-schema.org/draft/2020-12/schema',
+      type: 'object',
+      properties: {
+        aaa: { type: 'string' },
+      },
+      required: ['aaa'],
+      title: 'xxx',
+      description: 'yyy',
+    });
+  });
+
+  test('adds title and description via custom getters', () => {
+    const shape = d
+      .object({
+        aaa: d.string(),
+      })
+      .annotate({
+        xxx: 'ppp',
+        yyy: 'qqq',
+      });
+
+    expect(
+      toJSONSchema(shape, {
+        getTitle: shape => shape.annotations.xxx,
+        getDescription: shape => shape.annotations.yyy,
+      })
+    ).toEqual({
+      $schema: 'https://json-schema.org/draft/2020-12/schema',
+      type: 'object',
+      properties: {
+        aaa: { type: 'string' },
+      },
+      required: ['aaa'],
+      title: 'ppp',
+      description: 'qqq',
+    });
+  });
+
   describe('cyclic dependencies', () => {
     test('converts a immediate cyclic schema', () => {
       const shape: any = d.lazy(() => shape);

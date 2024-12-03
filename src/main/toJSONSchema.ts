@@ -60,6 +60,20 @@ export interface JSONSchemaOptions {
    * {@linkcode definitionsKey}. Otherwise, those definitions aren't rendered.
    */
   unusedDefinitions?: boolean;
+
+  /**
+   * Returns a shape {@linkcode JSONSchema.title title}.
+   *
+   * By default, a {@link doubter!Shape.annotations title annotation} value is used.
+   */
+  getTitle?: (shape: AnyShape) => string | undefined;
+
+  /**
+   * Returns a shape {@linkcode JSONSchema.description description}.
+   *
+   * By default, a {@link doubter!Shape.annotations description annotation} value is used.
+   */
+  getDescription?: (shape: AnyShape) => string | undefined;
 }
 
 /**
@@ -85,9 +99,11 @@ export function toJSONSchema(source: AnyShape | Dict<AnyShape>, options: JSONSch
     basePath = '#',
     unusedDefinitions,
     dialect = 'https://json-schema.org/draft/2020-12/schema',
+    getTitle,
+    getDescription,
   } = options;
 
-  const converter = new Converter(basePath + '/' + definitionsKey + '/');
+  const converter = new Converter(basePath + '/' + definitionsKey + '/', getTitle, getDescription);
 
   if (definitions !== undefined) {
     for (const name in definitions) {
@@ -159,8 +175,14 @@ class Converter {
 
   /**
    * @param definitionsPath The path prefix for schema references.
+   * @param getTitle Returns a shape title
+   * @param getDescription Returns a shape description
    */
-  constructor(readonly definitionsPath: string) {}
+  constructor(
+    readonly definitionsPath: string,
+    readonly getTitle = getShapeTitle,
+    readonly getDescription = getShapeDescription
+  ) {}
 
   /**
    * Adds or replaces a definition.
@@ -284,8 +306,14 @@ function convertShape(shape: AnyShape, converter: Converter): JSONSchema {
     schema = {};
   }
 
-  if (typeof shape.annotations.description === 'string') {
-    schema.description = shape.annotations.description;
+  const title = converter.getTitle(shape);
+  const description = converter.getDescription(shape);
+
+  if (title !== undefined) {
+    schema.title = title;
+  }
+  if (description !== undefined) {
+    schema.description = description;
   }
 
   return schema;
@@ -507,10 +535,6 @@ function convertStringShape(shape: StringShape): JSONSchema {
           (schema.allOf ||= []).push({ type: 'string', pattern: param });
         }
         break;
-
-      case 'string.format':
-        schema.format = param;
-        break;
     }
   }
 
@@ -527,4 +551,20 @@ function convertRecordShape(
     schema.propertyNames = converter.convert(shape.keysShape);
   }
   return schema;
+}
+
+function getShapeTitle(shape: AnyShape): string | undefined {
+  const { title } = shape.annotations;
+
+  if (typeof title === 'string') {
+    return title;
+  }
+}
+
+function getShapeDescription(shape: AnyShape): string | undefined {
+  const { description } = shape.annotations;
+
+  if (typeof description === 'string') {
+    return description;
+  }
 }
