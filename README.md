@@ -28,7 +28,6 @@ The `schema` is a JSON schema object:
 
 ```json
 {
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
   "properties": {
     "name": {

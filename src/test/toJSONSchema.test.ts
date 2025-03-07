@@ -8,7 +8,6 @@ describe('toJSONSchema', () => {
     });
 
     expect(toJSONSchema(shape)).toEqual({
-      $schema: 'https://json-schema.org/draft/2020-12/schema',
       type: 'object',
       properties: {
         aaa: { type: 'string' },
@@ -28,7 +27,6 @@ describe('toJSONSchema', () => {
     });
 
     expect(toJSONSchema(shape2)).toEqual({
-      $schema: 'https://json-schema.org/draft/2020-12/schema',
       type: 'object',
       properties: {
         aaa: {
@@ -61,7 +59,6 @@ describe('toJSONSchema', () => {
       });
 
     expect(toJSONSchema(shape)).toEqual({
-      $schema: 'https://json-schema.org/draft/2020-12/schema',
       type: 'object',
       properties: {
         aaa: { type: 'string' },
@@ -72,7 +69,7 @@ describe('toJSONSchema', () => {
     });
   });
 
-  test('adds title and description via custom getters', () => {
+  test('applies post-processor', () => {
     const shape = d
       .object({
         aaa: d.string(),
@@ -84,11 +81,12 @@ describe('toJSONSchema', () => {
 
     expect(
       toJSONSchema(shape, {
-        getTitle: shape => shape.annotations.xxx,
-        getDescription: shape => shape.annotations.yyy,
+        postprocess: (shape, schema) => {
+          schema.title = shape.annotations.xxx;
+          schema.description = shape.annotations.yyy;
+        },
       })
     ).toEqual({
-      $schema: 'https://json-schema.org/draft/2020-12/schema',
       type: 'object',
       properties: {
         aaa: { type: 'string' },
@@ -104,7 +102,6 @@ describe('toJSONSchema', () => {
       const shape: any = d.lazy(() => shape);
 
       expect(toJSONSchema(shape)).toEqual({
-        $schema: 'https://json-schema.org/draft/2020-12/schema',
         $ref: '#/definitions/shape1',
         definitions: {
           shape1: { $ref: '#/definitions/shape1' },
@@ -118,7 +115,6 @@ describe('toJSONSchema', () => {
       });
 
       expect(toJSONSchema(shape)).toEqual({
-        $schema: 'https://json-schema.org/draft/2020-12/schema',
         $ref: '#/definitions/shape1',
         definitions: {
           shape1: {
@@ -139,7 +135,6 @@ describe('toJSONSchema', () => {
       });
 
       expect(toJSONSchema(shape)).toEqual({
-        $schema: 'https://json-schema.org/draft/2020-12/schema',
         $ref: '#/definitions/shape1',
         definitions: {
           shape1: {
@@ -166,7 +161,6 @@ describe('toJSONSchema', () => {
       });
 
       expect(toJSONSchema(shape2)).toEqual({
-        $schema: 'https://json-schema.org/draft/2020-12/schema',
         type: 'object',
         properties: {
           aaa: { $ref: '#/definitions/shape1' },
@@ -200,7 +194,6 @@ describe('toJSONSchema', () => {
       });
 
       expect(toJSONSchema(shape2, { definitions: { xxx: shape1 } })).toEqual({
-        $schema: 'https://json-schema.org/draft/2020-12/schema',
         type: 'object',
         properties: {
           aaa: { $ref: '#/definitions/xxx' },
@@ -222,7 +215,6 @@ describe('toJSONSchema', () => {
       });
 
       expect(toJSONSchema(shape2, { definitions: { xxx: shape1 } })).toEqual({
-        $schema: 'https://json-schema.org/draft/2020-12/schema',
         type: 'object',
         properties: {
           aaa: { $ref: '#/definitions/xxx' },
@@ -244,7 +236,6 @@ describe('toJSONSchema', () => {
       const shape: any = d.lazy(() => shape);
 
       expect(toJSONSchema(shape, { definitions: { xxx: shape } })).toEqual({
-        $schema: 'https://json-schema.org/draft/2020-12/schema',
         $ref: '#/definitions/xxx',
         definitions: {
           xxx: { $ref: '#/definitions/xxx' },
@@ -260,7 +251,6 @@ describe('toJSONSchema', () => {
       });
 
       expect(toJSONSchema(shape2, { definitions: { xxx: shape1 } })).toEqual({
-        $schema: 'https://json-schema.org/draft/2020-12/schema',
         type: 'object',
         properties: {
           aaa: { type: 'string' },
@@ -277,7 +267,6 @@ describe('toJSONSchema', () => {
       });
 
       expect(toJSONSchema(shape2, { definitions: { xxx: shape1 }, unusedDefinitions: true })).toEqual({
-        $schema: 'https://json-schema.org/draft/2020-12/schema',
         type: 'object',
         properties: {
           aaa: { type: 'string' },
@@ -297,7 +286,6 @@ describe('toJSONSchema', () => {
       });
 
       expect(toJSONSchema(shape2, { definitions: { xxx: shape1 }, definitionsKey: 'zzz' })).toEqual({
-        $schema: 'https://json-schema.org/draft/2020-12/schema',
         type: 'object',
         properties: {
           aaa: { $ref: '#/zzz/xxx' },
@@ -315,7 +303,6 @@ describe('toJSONSchema', () => {
       const shape = d.string();
 
       expect(toJSONSchema({ xxx: shape })).toEqual({
-        $schema: 'https://json-schema.org/draft/2020-12/schema',
         definitions: {
           xxx: { type: 'string' },
         },
@@ -330,7 +317,6 @@ describe('toJSONSchema', () => {
       });
 
       expect(toJSONSchema({ xxx: shape2, yyy: shape1 })).toEqual({
-        $schema: 'https://json-schema.org/draft/2020-12/schema',
         definitions: {
           xxx: {
             type: 'object',
@@ -352,7 +338,6 @@ describe('toJSONSchema', () => {
       });
 
       expect(toJSONSchema({ xxx: shape2, yyy: shape1 })).toEqual({
-        $schema: 'https://json-schema.org/draft/2020-12/schema',
         definitions: {
           xxx: {
             type: 'object',
